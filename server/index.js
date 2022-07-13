@@ -1,6 +1,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import bcrypt from "bcryptjs";
 
 //const { express } = require("express");
 //const { mongoose } = require("mongoose");
@@ -13,7 +14,7 @@ app.use(cors());
 
 mongoose
   .connect(
-    "mongodb+srv://Hammad:Hammadhammad1@cluster0.wa042.mongodb.net/?retryWrites=true&w=majority",
+    "mongodb+srv://Hammad:Hammadhammad1@cluster0.wa042.mongodb.net/authentication?retryWrites=true&w=majority",
     {
       //userNewUrlParser: true,
       useUnifiedTopology: true,
@@ -27,30 +28,39 @@ app.get("/Sign", (req, res) => {
 });
 
 //route
-app.post("/Signup", (req, res) => {
-  const { name, email, phoneno, password } = req.body;
-  User.findOne({ email: email }, (err, user) => {
-    if (user) {
-      res.send({ message: "user already exists" });
-    } else {
-      const user = new User({
-        name,
-        email,
-        phoneno,
-        password,
-      });
-      user.save((err) => {
-        if (err) {
-          res.send(err);
-        } else {
-          res.send({ message: "Sucesfully registered" });
-        }
-      });
-    }
-  });
+app.post("/Signup", async (req, res) => {
+  const { name, email, phoneno, password, confirmpassword } = req.body;
+
+  try {
+    const oldUser = await User.findOne({ email });
+
+    console.log(oldUser);
+
+    if (oldUser)
+      return res.status(400).json({ message: "User already exists" });
+
+    if (password !== confirmpassword)
+      return res.status(400).json({ message: "Password does not match" });
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const result = await User.create({
+      name,
+      email,
+      phoneno,
+      password: hashedPassword,
+    });
+
+    console.log(result);
+    res.status(201).json(result);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
 });
 
 const userSchema = mongoose.Schema({
+  id: String,
   name: String,
   email: String,
   phoneno: String,
@@ -59,6 +69,6 @@ const userSchema = mongoose.Schema({
 
 const User = new mongoose.model("User", userSchema);
 
-app.listen(3021, () => {
-  console.log("Listening on port 3020");
+app.listen(3001, () => {
+  console.log("Listening on port 3001");
 });
