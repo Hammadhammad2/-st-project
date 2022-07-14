@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import useState from "usestate";
 
 //const { express } = require("express");
 //const { mongoose } = require("mongoose");
@@ -23,9 +24,22 @@ mongoose
   .then(() => console.log("Database Connected"))
   .catch((err) => console.log(err));
 
-app.get("/Sign", (req, res) => {
-  res.send("Signuddddp");
+const userSchema = mongoose.Schema({
+  id: String,
+  name: String,
+  email: String,
+  phoneno: String,
+  password: String,
 });
+
+const citySchema = mongoose.Schema({
+  id: String,
+  label: String,
+  value: String,
+});
+
+const User = new mongoose.model("User", userSchema);
+const City = new mongoose.model("City", citySchema);
 
 //route
 app.post("/Signup", async (req, res) => {
@@ -36,11 +50,13 @@ app.post("/Signup", async (req, res) => {
 
     console.log(oldUser);
 
-    if (oldUser)
+    if (oldUser) {
       return res.status(400).json({ message: "User already exists" });
+    }
 
-    if (password !== confirmpassword)
+    if (password !== confirmpassword) {
       return res.status(400).json({ message: "Password does not match" });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -59,15 +75,46 @@ app.post("/Signup", async (req, res) => {
   }
 });
 
-const userSchema = mongoose.Schema({
-  id: String,
-  name: String,
-  email: String,
-  phoneno: String,
-  password: String,
+app.post("/Login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const oldUser = await User.findOne({ email });
+
+    console.log(oldUser);
+
+    if (!oldUser) {
+      return res.status(400).json({ message: "User does not exists " });
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(password, oldUser.password);
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+    res.status(200).json(oldUser);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
 });
 
-const User = new mongoose.model("User", userSchema);
+app.post("/City", async (req, res) => {
+  const { label, value } = req.body;
+
+  try {
+    const result = await City.create({
+      label,
+      value,
+    });
+    console.log(result);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
 
 app.listen(3001, () => {
   console.log("Listening on port 3001");
