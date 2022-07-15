@@ -10,7 +10,7 @@ import useState from "usestate";
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 mongoose
@@ -110,6 +110,27 @@ app.post("/City", async (req, res) => {
     console.log(result);
 
     res.status(200).json(result);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+app.get("/ShowCity", async (req, res) => {
+  try {
+    const data = await City.find({});
+    //console.log(data);
+    res.status(200).json(data);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+app.get("/deleteCity", async (req, res) => {
+  const { id } = req.body;
+  try {
+    await City.deleteOne({ id });
+    res.status(200).json({ message: "Row Deleted" });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Something went wrong" });
